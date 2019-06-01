@@ -7,7 +7,7 @@ import listener from './globalEventListener';
 import AbstractMenu from './AbstractMenu';
 import SubMenu from './SubMenu';
 import { hideMenu } from './actions';
-import { cssClasses, callIfExists, store } from './helpers';
+import { cssClasses, callIfExists, store, getDocumentNode } from './helpers';
 
 export default class ContextMenu extends AbstractMenu {
     static propTypes = {
@@ -94,20 +94,22 @@ export default class ContextMenu extends AbstractMenu {
     }
 
     registerHandlers = () => {
-        document.addEventListener('mousedown', this.handleOutsideClick);
-        document.addEventListener('touchstart', this.handleOutsideClick);
-        if (!this.props.preventHideOnScroll) document.addEventListener('scroll', this.handleHide);
-        if (!this.props.preventHideOnContextMenu) document.addEventListener('contextmenu', this.handleHide);
-        document.addEventListener('keydown', this.handleKeyNavigation);
+        if (this.document == null) return;
+        this.document.addEventListener('mousedown', this.handleOutsideClick);
+        this.document.addEventListener('touchstart', this.handleOutsideClick);
+        if (!this.props.preventHideOnScroll) this.document.addEventListener('scroll', this.handleHide);
+        if (!this.props.preventHideOnContextMenu) this.document.addEventListener('contextmenu', this.handleHide);
+        this.document.addEventListener('keydown', this.handleKeyNavigation);
         if (!this.props.preventHideOnResize) window.addEventListener('resize', this.handleHide);
     }
 
     unregisterHandlers = () => {
-        document.removeEventListener('mousedown', this.handleOutsideClick);
-        document.removeEventListener('touchstart', this.handleOutsideClick);
-        document.removeEventListener('scroll', this.handleHide);
-        document.removeEventListener('contextmenu', this.handleHide);
-        document.removeEventListener('keydown', this.handleKeyNavigation);
+        if (this.document == null) return;
+        this.document.removeEventListener('mousedown', this.handleOutsideClick);
+        this.document.removeEventListener('touchstart', this.handleOutsideClick);
+        this.document.removeEventListener('scroll', this.handleHide);
+        this.document.removeEventListener('contextmenu', this.handleHide);
+        this.document.removeEventListener('keydown', this.handleKeyNavigation);
         window.removeEventListener('resize', this.handleHide);
     }
 
@@ -224,6 +226,13 @@ export default class ContextMenu extends AbstractMenu {
 
     menuRef = (c) => {
         this.menu = c;
+        // Get the document fragment that contains the menu, if contained in a shadow DOM;
+        // otherwise get the page's document.  Determining the document element that applies allows
+        // us to attach document-wide events that are guaranteed to work (refer to
+        // `registerHandlers`/`unregisterHandlers`).  Note that this solves the problem we had
+        // previously when we were attaching the events to `document` regardless, which did NOT
+        // work when the menu was contained in a shadow DOM.
+        this.document = getDocumentNode(c);
     }
 
     render() {
