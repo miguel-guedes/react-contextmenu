@@ -59,7 +59,20 @@ export default class ContextMenu extends AbstractMenu {
     }
 
     componentDidUpdate() {
-        const wrapper = window.requestAnimationFrame || setTimeout;
+        // When rendering inside a shadow root, must employ try-catch guard to prevent a very
+        // strange failure in Firefox that causes the contents of the shadow root to be removed
+        // whenever an exception occurs.
+        const wrapper = (fn) => {
+            window.requestAnimationFrame(() => {
+                try {
+                    fn();
+                } catch (x) {
+                    // eslint-disable-next
+                    console.error(x);
+                }
+            });
+        };
+
         if (this.state.isVisible) {
             wrapper(() => {
                 const { x, y } = this.state;
